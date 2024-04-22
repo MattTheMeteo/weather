@@ -33,7 +33,7 @@ def assemble_var_url(varis: str) -> str:
     Given some variables, check for their validaity and then assemble the piece
     of the url that will tell the grib filter what variables to pull.
     '''
-    if (not check_noaa_vars):
+    if not check_noaa_vars:
         return("Variable check failed, check your variables.")
     var_url = [f"&var_{var_out}=on" for var_out in varis]
     return(var_url)
@@ -43,26 +43,28 @@ def assemble_lev_url(levs: str) -> str:
     Given some levels, check their validity and assemble the piece of the grib
     filter url that picks what levels to select.
     '''
-    if (not check_noaa_levels):
+    if not check_noaa_levels:
         return("Level check failed, check your levels.")
     lev_url = [f"&lev_{lev_out}=on" for lev_out in levs]
     return(lev_url)
 
-def check_noaa_levels(levs: str) -> bool:
+def check_noaa_levels(levs: tuple) -> bool:
     '''
     Takes one or more levels submitted by a user or process and returns whether or not they're valid.
     This does not account for individual models different fields, it just makes sure the query belongs to known
     NOAA values. 
     '''
-    valid_levels: ["2_m_above_ground", "10_m_above_ground", "80_m_above_ground",
-                    "1000_mb", "850_mb", "700_mb", "500_mb", "250_mb"]
+    # Ensure this object is a list.
+    levs = (levs,)
+    valid_levels = ["2_m_above_ground", "10_m_above_ground", "80_m_above_ground",
+                     "1000_mb", "850_mb", "700_mb", "500_mb", "250_mb"]
     
-    if (any(lev not in valid_levels for lev in levs)):
+    if any(lev not in valid_levels for lev in levs):
         return(False)
     else:
         return(True)
-    
-def check_noaa_vars(vars: str) -> bool:
+
+def check_noaa_vars(vars: list) -> bool:
     '''
     Takes one or more variables submitted by a user or process and returns whether or not they're valid.
     This does not account for individual models different fields, it just makes sure the query belongs to known
