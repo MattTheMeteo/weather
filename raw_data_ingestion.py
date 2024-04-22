@@ -1,84 +1,155 @@
-from re import compile
 from requests import get
-import pandas as pd
+import os
 import datetime as dt
+from dataclasses import dataclass
+from typing import Tuple
+import re
 
-def pull_hrrr_subh_grib_filter(init_date: dt.date, varis: str, levs: str, init_hour: int, fcst: int):
-    '''
-    Given a day, some metadata and a forecast length, assemble a valid grib_filter
-    url, and pull it. 
-    '''
-    # Some input validation and formatting.
-    init_date = init_date.strftime('%Y%m%d')
-    base_url = [f"https://nomads.ncep.noaa.gov/cgi-bin/filter_hrrr_sub.pl?dir=%2Fhrrr.{init_date}%2Fconus&file=hrrr.t{init_hour:02d}z.wrfsubhf{hr:02d}.grib2" for hr in fcst]
-    dest_path = "~/test_data/f'HRRR_{init_date}{init_hour:02d}'"
-    # Build the rest of the URL depending on what was input.
-    var_url = assemble_var_url(varis=varis)
-    lev_url = assemble_lev_url(levs=levs)
-    base_var = [f"{url1}{var_url}" for url1 in base_url]
-    base_lev = [f"{url2}{lev_url}" for url2 in base_var]
+@dataclass
+class noaa_grib_filter:
+    """
+    This class represents all of the potential modifiers to a grib filter call
+    Attributes:
+        init_dt (dt.date): the date you want to pull from the filter.
+        fcst (tuple[int]): the forecast hour(s) you want to pull
+        varis (tuple[str]): the forecast variable(s) you want to pull
+        levs (tuple[str]): the forecast level(s) you want to pull
+        init_hr (int): the hour of initialization 
+    """
+    init_dt: dt.date
+    fcst:    Tuple[int, ...]
+    varis:   Tuple[str, ...]
+    levs:    Tuple[str, ...]
+    init_hr: int
+    model: str
+
+    def check_noaa_vars(self) -> bool:
+        """
+        Simple validity on the variables passed to the class.
+        Returns:
+            bool: True if the values are valid
+        """
+        valid_vars = ["DPT", "DSWRF", "HGT", "PRES", "TMP", "UGRD", "VGRD",
+                       "VBDSF", "VDDSF"]
+        if (any(var not in valid_vars for var in self.varis)):
+            return(False)
+        else:
+            return(True)
     
-    # Execute the pull
-    resp = get(base_lev)
-    if resp.status_code == 200:
-        with open(dest_path, mode = 'wb') as f:
-            f.write(resp.content)
-            return(base_lev)
-    else:
-        print(f"Encountered a {resp.status_code} at {base_lev}")
-        return([resp.status_code, base_lev])
-
-def assemble_var_url(varis: str) -> str:
-    '''
-    Given some variables, check for their validaity and then assemble the piece
-    of the url that will tell the grib filter what variables to pull.
-    '''
-    if not check_noaa_vars:
-        return("Variable check failed, check your variables.")
-    var_url = [f"&var_{var_out}=on" for var_out in varis]
-    return(var_url)
-
-def assemble_lev_url(levs: str) -> str:
-    '''
-    Given some levels, check their validity and assemble the piece of the grib
-    filter url that picks what levels to select.
-    '''
-    if not check_noaa_levels:
-        return("Level check failed, check your levels.")
-    lev_url = [f"&lev_{lev_out}=on" for lev_out in levs]
-    return(lev_url)
-
-def check_noaa_levels(levs: tuple) -> bool:
-    '''
-    Takes one or more levels submitted by a user or process and returns whether or not they're valid.
-    This does not account for individual models different fields, it just makes sure the query belongs to known
-    NOAA values. 
-    '''
-    # Ensure this object is a list.
-    levs = (levs,)
-    valid_levels = ["2_m_above_ground", "10_m_above_ground", "80_m_above_ground",
-                     "1000_mb", "850_mb", "700_mb", "500_mb", "250_mb"]
+    def assemble_var_url(self) -> str:
+        """
+        Takes a number of levels associated with the grib_filter object and 
+        formats it.
+        Returns:
+            str: returns this chunk of the url as a string
+        """
+        if not self.check_noaa_vars():
+            return("Variable check failed, check your variables.")
+        var_url = [f"&var_{var_out}=on" for var_out in self.varis]
+        var_url = ''.join(var_url)
+        return(var_url)
     
-    if any(lev not in valid_levels for lev in levs):
-        return(False)
-    else:
-        return(True)
-
-def check_noaa_vars(vars: list) -> bool:
-    '''
-    Takes one or more variables submitted by a user or process and returns whether or not they're valid.
-    This does not account for individual models different fields, it just makes sure the query belongs to known
-    NOAA values.
-    Parameters: a string or array containing some variables to pull from NOAA.
-    Returns: a boolean, True when the variables exist, False if one or more does not.
-    '''
-    valid_vars = ["DPT", "DSWRF", "HGT", "PRES", "TMP", "UGRD", "VGRD", "VBDSF", "VDDSF"]
-    if (any(var not in valid_vars for var in vars)):
-        return(False)
-    else:
-        return(True)
-
+    def check_noaa_levs(self) -> bool:
+        """
+        Simple validity checker for NOAA levels
+        Returns:
+            bool: True if the levels are not valid.
+        """
+        valid_levels = ("2_m_above_ground", "10_m_above_ground", 
+                        "80_m_above_ground","1000_mb", "850_mb", "700_mb",
+                          "500_mb", "250_mb")
     
+        if any(lev not in valid_levels for lev in self.levs):
+            return(False)
+        else:
+            return(True)
+    
+    def assemble_lev_url(self) -> str:
+        """
+        Assembles the levels portion of the url given valid inputs.
+        Returns:
+            str: _description_
+        """
+        if not self.check_noaa_levs():
+            return("Level check failed, check your levels.")
+        lev_url = [f"&lev_{lev_out}=on" for lev_out in self.levs]
+        lev_url = ''.join(lev_url)
+        return(lev_url)
+    
+    def assemble_base_url(self) -> str:
+        """
+        Generate the base URL depending on the same model selected.
+        Returns:
+            str: _description_
+        """
+        init_date = self.init_dt.strftime('%Y%m%d')
+        mod_dict = {
+            "HRRR_subh": [f"https://nomads.ncep.noaa.gov/cgi-bin/filter_hrrr"
+                          f"_sub.pl?dir=%2Fhrrr.{init_date}%2Fconus&file=hrrr."
+                          f"t{self.init_hr:02d}z.wrfsubhf{hr:02d}.grib2"
+                            for hr in self.fcst]
+        }
+        # This will automatically check the keys.
+        if self.model in mod_dict:
+            base_url = mod_dict[self.model]
+            return(base_url)
+        else: 
+            raise NotImplementedError("Model is not implemented yet.")
+    
+    def assemble_dest_path(self) -> str:
+        """
+        Given a model and some dates, find the write place to put the data.
+        Returns:
+            str: a file path, currently on my local machine.
+        """
+        # Python does not allow for ~ to mean the user's home. It takes it
+        # as a string literal.
+        home = os.path.expanduser("~")
+        dest_path = f"{home}/test_data/{self.model}_{self.init_dt.strftime('%Y%m%d')}{self.init_hr:02d}"
+
+        # If it doesn't exist, make the directory.
+        if not os.path.exists(dest_path):
+            os.makedirs(dest_path)
+        return(dest_path)
+    
+    def pull_grib_filter(self) -> str:
+        """
+        Given a day, some metadata and a forecast length, assemble a valid grib_filter
+        url, and pull it.
+
+        Returns:
+            str: the location of the destination file
+        """
+        urls = self.assemble_base_url()
+        tgts = [f"{x}{self.assemble_lev_url()}{self.assemble_var_url()}" for x in urls]
+
+        # Pull each url.
+        for url in tgts:
+            resp = get(url = url)
+            if resp.status_code == 200:
+                to_match = r'file=(.*?\.grib2)'
+                f_name = re.search(to_match, url).group(1)
+                with open(f"{self.assemble_dest_path()}/{f_name}", mode = 'wb') as f:
+                    f.write(resp.content)
+                    return(url)
+            else:
+                print(f"Encountered a {resp.status_code} at {url}")
+                return([resp.status_code, url])
+
+def main():
+    tst = noaa_grib_filter(init_dt = dt.datetime.now(),
+                           fcst=(0, 1),
+                           varis = ("UGRD", "VGRD"),
+                           levs = ("80_m_above_ground",),
+                           init_hr = 1,
+                           model = "HRRR_subh")
+    out = tst.pull_grib_filter()
+    return(out)
+
+if __name__ == "__main__":
+    main()
+
+
 
 
 
