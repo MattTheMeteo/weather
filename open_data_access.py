@@ -1,7 +1,6 @@
 import boto3
 from botocore import UNSIGNED
 from botocore.client import Config
-from os import path
 from datetime import date
 import re
 from dataclasses import dataclass
@@ -77,9 +76,6 @@ def filter_hrrr_init_forecast_hours(req_obj: hrrr_request,
 # - take variables
 # - pull byte ranges for each
 # - Hit the file itself and download them.
-
-    
-
 if __name__ == '__main__':
     req = hrrr_request(init_hrs= tuple(range(0,23,1)), fcst_hrs = tuple(range(0,12,1)), day_to_pull=date(2024,8,20))
     pths = get_nodd_hrrr_idx_file_names(req_obj=req)

@@ -76,7 +76,7 @@ class noaa_grib_filter:
         lev_url = ''.join(lev_url)
         return(lev_url)
     
-    def assemble_base_url(self) -> str:
+    def assemble_base_url(self) -> list[str]:
         """
         Generate the base URL depending on the same model selected.
         Returns:
@@ -126,16 +126,22 @@ class noaa_grib_filter:
         # Pull each url.
         for url in tgts:
             resp = get(url = url)
+            
             if resp.status_code == 200:
                 to_match = r'file=(.*?\.grib2)'
-                f_name = re.search(to_match, url).group(1)
+                # Null handling
+                match_test = re.search(to_match, url)
+                if match_test:
+                    f_name = match_test.group(1)
+                else:
+                    AttributeError("No match found")  
                 with open(f"{self.assemble_dest_path()}/{f_name}", mode = 'wb') as f:
                     f.write(resp.content)
                     return(url)
             else:
                 print(f"Encountered a {resp.status_code} at {url}")
-                return([resp.status_code, url])
-
+                return(f"{str(resp.status_code)} at {url}")
+        raise RuntimeError("Something has gone very wrong.")
 def main():
     tst = noaa_grib_filter(init_dt = dt.datetime.now(),
                            fcst=(0, 1),
