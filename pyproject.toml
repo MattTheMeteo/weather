@@ -1,8 +1,12 @@
+
+
 [project]
 name = "weather"
 version = "0.1.0"
 description = "I want to do some cool stuff with weather data"
-authors = ["Matt Livingston <mwl5399@gmail.com>"]
+authors = [
+    {name = "Matt Livingston", email =  "mwl5399@gmail.com"}
+]
 readme = "README.md"
 requires-python = ">=3.12.3"
 dependencies = [
