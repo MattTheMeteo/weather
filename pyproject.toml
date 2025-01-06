@@ -13,6 +13,8 @@ dependencies = [
     "requests >= 2.31.0",
     "pandas >= 2.1.4",
     "boto3 >= 1.34.153",
+    "xarray>=2025.1.0",
+    "grib2io>=2.3.0",
 ]
 
 [tool.uv]

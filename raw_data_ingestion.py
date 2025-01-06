@@ -105,7 +105,7 @@ class noaa_grib_filter:
         # Python does not allow for ~ to mean the user's home. It takes it
         # as a string literal.
         home = os.path.expanduser("~")
-        dest_path = f"{home}/test_data/{self.model}_{self.init_dt.strftime('%Y%m%d')}{self.init_hr:02d}.grib2"
+        dest_path = f"{home}/test_data/{self.model}_{self.init_dt.strftime('%Y%m%d')}{self.init_hr:02d}"
 
         # If it doesn't exist, make the directory.
         if not os.path.exists(dest_path):
