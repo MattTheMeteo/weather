@@ -1,9 +1,9 @@
-from requests import get
-import os
 import datetime as dt
 from dataclasses import dataclass
-from typing import Tuple
+import os
 import re
+from requests import get
+from typing import Tuple
 
 @dataclass
 class noaa_grib_filter:
@@ -105,7 +105,7 @@ class noaa_grib_filter:
         # Python does not allow for ~ to mean the user's home. It takes it
         # as a string literal.
         home = os.path.expanduser("~")
-        dest_path = f"{home}/test_data/{self.model}_{self.init_dt.strftime('%Y%m%d')}{self.init_hr:02d}"
+        dest_path = f"{home}/test_data/{self.model}_{self.init_dt.strftime('%Y%m%d')}{self.init_hr:02d}.grib2"
 
         # If it doesn't exist, make the directory.
         if not os.path.exists(dest_path):

@@ -1,6 +1,6 @@
 import boto3
-from botocore import UNSIGNED
-from botocore.client import Config
+import botocore
+import botocore.client
 from datetime import date
 import re
 from dataclasses import dataclass
@@ -34,7 +34,7 @@ def get_nodd_hrrr_idx_file_names(req_obj: hrrr_request):
     prefix_path = f"hrrr.{req_obj.day_to_pull.strftime('%Y%m%d')}/conus/"
     
     # Open an unsigned connection
-    s3_client = boto3.client('s3', config = Config(signature_version=UNSIGNED))
+    s3_client = boto3.client('s3', config = botocore.client.Config(signature_version=botocore.UNSIGNED))
     
     # Grab the data
     resp = s3_client.list_objects_v2(Bucket=bucket_name, Prefix=prefix_path)
