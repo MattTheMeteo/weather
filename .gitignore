@@ -56,5 +56,11 @@ docker-compose*
 *.env
 
 # Mypy cache
-.mypy_cache/
-.ruff_cache/
+*.mypy_cache/
+*.ruff_cache/
+
+# .venv
+*.venv/
+
+# .vscode settings
+.vscode/
